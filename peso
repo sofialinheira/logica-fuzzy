@@ -1,0 +1,59 @@
+#pip install scikit-fuzzy
+
+import numpy as np
+import matplotlib
+#import skfuzzy
+import skfuzzy as fuzz
+import matplotlib.pyplot as plt
+from skfuzzy import control as ctrl
+
+#Variaveis de Entrada (Antecedent)
+comida = ctrl.Antecedent(np.arange(0, 11, 1), 'comida')
+exercicio = ctrl.Antecedent(np.arange(0, 11, 1), 'exercicio')
+
+#Variaveis de saída (Consequent)
+peso = ctrl.Consequent(np.arange(0, 31, 1), 'peso')
+
+# automf -> Atribuição de categorias automaticamente
+comida.automf(names=['pouco','razoavel','bastante'],)
+exercicio.automf(names=['pouco','razoavel','muito'])
+
+# atribuicao sem o automf
+peso['leve'] = fuzz.gaussmf(peso.universe, 0,.1)
+peso['medio'] = fuzz.gaussmf(peso.universe, .1, 3)
+peso['pesado'] = fuzz.gaussmf(peso.universe, 15,5)
+
+#Visualizando as variáveis
+comida.view()
+exercicio.view()
+peso.view()
+
+#Criando as regras
+regra_1 = ctrl.Rule(comida['pouco'] & exercicio['muito'], peso['leve'])
+regra_2 = ctrl.Rule(comida['pouco'] | exercicio['razoavel'], peso['leve'])
+regra_3 = ctrl.Rule(exercicio['muito'], peso['medio'])
+regra_4 = ctrl.Rule(exercicio['muito'] | comida['razoavel'], peso['leve'])
+
+controlador = ctrl.ControlSystem([regra_1, regra_2, regra_3,regra_4])
+
+#Simulando
+CalculoPeso = ctrl.ControlSystemSimulation(controlador)
+
+notaComida = int(input('Comida: '))
+notaExercicio = int(input('Exedcicio: '))
+CalculoPeso.input['comida'] = notaComida
+CalculoPeso.input['exercicio'] = notaExercicio
+CalculoPeso.compute()
+
+valorPeso = CalculoPeso.output['peso']
+
+print("\nQualidade %d \nServiço %d \nGorjeta de %5.2f" %(
+        notaComida,
+        notaExercicio,
+        valorPeso))
+
+comida.view(sim=CalculoPeso)
+exercicio.view(sim=CalculoPeso)
+peso.view(sim=CalculoPeso)
+
+plt.show()
